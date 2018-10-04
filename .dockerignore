@@ -1,0 +1,12 @@
+.git/
+.awcache/
+.idea/
+.vscode/
+.nyc_output/
+coverage/
+
+node_modules/
+
+.dockerignore
+.editorconfig
+.gitignore

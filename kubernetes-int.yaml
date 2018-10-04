@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: establishments
+  labels:
+    app: establishments
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      prefix: /int/establishments/
+      name: establishments-int
+      service: establishments.integration:3000
+      timeout_ms: 10000
+
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: api
+  selector:
+    app: establishments
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: establishments
+  labels:
+    app: establishments
+    version: v0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: establishments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: establishments
+        version: v0
+    spec:
+      containers:
+      - name: establishments
+        image: 240803094149.dkr.ecr.eu-west-1.amazonaws.com/establishments:dev
+        imagePullPolicy: Always
+        readinessProbe:
+          httpGet:
+            path: /liveness
+            port: 3000
+          timeoutSeconds: 3
+          successThreshold: 1
+        ports:
+        - containerPort: 3000
+          name: api
+          protocol: TCP
+        env:
+        - name: DEPLOYED
+          value: "true"
+        - name: AMBASSADOR_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-configmap
+              key: AMBASSADOR_URL
+        - name: KAFKA_CONN_STRING
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-configmap
+              key: KAFKA_CONN_STRING
+        - name: MONGODB_CONN_STRING
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-configmap
+              key: MONGODB_CONN_STRING
+        - name: ELASTIC_CLIENT
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-configmap
+              key: ELASTIC_CLIENT
+
+
